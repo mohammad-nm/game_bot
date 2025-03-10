@@ -1,9 +1,15 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
+import { TelegramService } from './telegram.service';
 
 @Controller('telegram')
 export class TelegramController {
+  constructor(private readonly telegramService: TelegramService) {}
   @Get()
   getHello(): string {
     return 'api is working...';
+  }
+  @Post('send')
+  async sendMessage(@Body() body: { chat_id: number; message: string }) {
+    return await this.telegramService.sendMessage(body.chat_id, body.message);
   }
 }

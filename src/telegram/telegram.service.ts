@@ -24,6 +24,7 @@ export class TelegramService {
     message: string | number,
     options?: object,
   ) {
+    console.log(`Sending message to ${chat_id}: ${message}`);
     return await this.bot.sendMessage(chat_id, message, options);
   }
   async editMessage(newMessage: string, message_id: number, chat_id: number) {
