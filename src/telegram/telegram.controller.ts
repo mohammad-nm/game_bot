@@ -1,4 +1,9 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 
 @Controller('telegram')
-export class TelegramController {}
+export class TelegramController {
+  @Get()
+  getHello(): string {
+    return 'api is working...';
+  }
+}

@@ -1,20 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 import { ConfigService } from '@nestjs/config';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { Redis } from 'ioredis';
+
 @Injectable()
 export class TelegramService {
   private bot: TelegramBot;
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @InjectRedis() private readonly redis: Redis,
+  ) {
     const BOT_TOKEN: string | undefined =
       this.configService.get<string>('BOT_TOKEN');
     if (!BOT_TOKEN) {
       throw new Error('BOT_TOKEN is not set');
     }
-    this.bot = new TelegramBot(BOT_TOKEN);
+    this.bot = new TelegramBot(BOT_TOKEN, { polling: true });
     this.initBot();
   }
-  async sendMessage(message: string, options?: object) {
-    return await this.bot.sendMessage(message);
+  async sendMessage(
+    chat_id: string | number,
+    message: string | number,
+    options?: object,
+  ) {
+    return await this.bot.sendMessage(chat_id, message, options);
   }
   async editMessage(newMessage: string, message_id: number, chat_id: number) {
     return await this.bot.editMessageText(newMessage, {
@@ -28,7 +38,10 @@ export class TelegramService {
     });
   }
   async sendQuizSetupMessage(chat_id: number) {
-    const message = '';
+    const message = `
+    Hi choose from the options below to setup your quiz!
+    If you want to participate in the quiz hit the I'm in button!
+    `;
     const options = {
       reply_markup: {
         inline_keyboard: [
@@ -41,7 +54,7 @@ export class TelegramService {
       },
     };
 
-    return await this.sendMessage(message, options);
+    return await this.sendMessage(chat_id, message, options);
   }
 
   private initBot() {}
