@@ -6,7 +6,7 @@ import { Redis } from 'ioredis';
 
 @Injectable()
 export class TelegramService {
-  private bot: TelegramBot;
+  private telegramBot: TelegramBot;
   constructor(
     private configService: ConfigService,
     @InjectRedis() private readonly redis: Redis,
@@ -16,7 +16,7 @@ export class TelegramService {
     if (!BOT_TOKEN) {
       throw new Error('BOT_TOKEN is not set');
     }
-    this.bot = new TelegramBot(BOT_TOKEN, { polling: true });
+    this.telegramBot = new TelegramBot(BOT_TOKEN, { polling: true });
     this.initBot();
   }
   async sendMessage(
@@ -25,16 +25,16 @@ export class TelegramService {
     options?: object,
   ) {
     console.log(`Sending message to ${chat_id}: ${message}`);
-    return await this.bot.sendMessage(chat_id, message, options);
+    return await this.telegramBot.sendMessage(chat_id, message, options);
   }
   async editMessage(newMessage: string, message_id: number, chat_id: number) {
-    return await this.bot.editMessageText(newMessage, {
+    return await this.telegramBot.editMessageText(newMessage, {
       message_id: message_id,
       chat_id: chat_id,
     });
   }
   async replyMessage(message: string, chat_id: number) {
-    return await this.bot.sendMessage(message, {
+    return await this.telegramBot.sendMessage(message, {
       chat_id: chat_id,
     });
   }
@@ -58,5 +58,16 @@ export class TelegramService {
     return await this.sendMessage(chat_id, message, options);
   }
 
-  private initBot() {}
+  private initBot() {
+    console.log('Telegram bot initialized and listening for messages...');
+    const bot = this.telegramBot;
+    bot.on('message', async (msg) => {
+      console.log(`Received message: ${msg.text} from ${msg.chat.id}`);
+      console.log('Message object:', msg);
+
+      if (msg.text === '/start') {
+        await this.sendMessage(msg.chat.id, 'Welcome! 🚀');
+      }
+    });
+  }
 }
