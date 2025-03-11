@@ -55,11 +55,12 @@ export class TelegramService {
     chat_id: number,
     reply_markup?: object,
   ) {
-    return await this.telegramBot.editMessageText(newMessage, {
+    await this.telegramBot.editMessageText(newMessage, {
       message_id: message_id,
       chat_id: chat_id,
       reply_markup: reply_markup,
     });
+    return;
   }
   async replyMessage(message: string, message_id: number, chat_id: number) {
     return await this.sendMessage(chat_id, message, {
@@ -117,11 +118,11 @@ Participants:
             { text: '15 questions', callback_data: '15q' },
           ],
           [
-            { text: 'JS ✅', callback_data: 'js' },
-            { text: 'TS', callback_data: 'ts' },
-            { text: 'React', callback_data: 'react' },
-            { text: 'Next.js', callback_data: 'next.js' },
-            { text: 'Node.js', callback_data: 'node.js' },
+            { text: 'JS ✅', callback_data: 'JS' },
+            { text: 'TS', callback_data: 'TS' },
+            { text: 'React', callback_data: 'React' },
+            { text: 'Next.js', callback_data: 'Next.js' },
+            { text: 'Node.js', callback_data: 'Node.js' },
           ],
           [{ text: 'Start Quiz ➡️', callback_data: 'start_quiz' }],
         ],
@@ -138,6 +139,7 @@ Participants:
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData = await this.redis.get(quizKey);
     const quiz: Quiz = JSON.parse(quizData as string);
+    if (!quiz) return { error: 'No quiz found' };
     const message = `Hi!
 This quiz has been created by: 🙍${username}
 
@@ -188,24 +190,24 @@ Participants:
         ],
         [
           {
-            text: 'JS' + (quiz.category === 'js' ? ' ✅' : ''),
-            callback_data: 'js',
+            text: 'JS' + (quiz.category === 'JS' ? ' ✅' : ''),
+            callback_data: 'JS',
           },
           {
-            text: 'TS' + (quiz.category === 'ts' ? ' ✅' : ''),
-            callback_data: 'ts',
+            text: 'TS' + (quiz.category === 'TS' ? ' ✅' : ''),
+            callback_data: 'TS',
           },
           {
-            text: 'React' + (quiz.category === 'react' ? ' ✅' : ''),
-            callback_data: 'react',
+            text: 'React' + (quiz.category === 'React' ? ' ✅' : ''),
+            callback_data: 'React',
           },
           {
-            text: 'Next.js' + (quiz.category === 'next.js' ? ' ✅' : ''),
-            callback_data: 'next.js',
+            text: 'Next.js' + (quiz.category === 'Next.js' ? ' ✅' : ''),
+            callback_data: 'Next.js',
           },
           {
-            text: 'Node.js' + (quiz.category === 'node.js' ? ' ✅' : ''),
-            callback_data: 'node.js',
+            text: 'Node.js' + (quiz.category === 'Node.js' ? ' ✅' : ''),
+            callback_data: 'Node.js',
           },
         ],
         [{ text: 'Start Quiz ➡️', callback_data: 'start_quiz' }],
@@ -226,7 +228,7 @@ Participants:
       message_id: message_id,
       chat_id: chat_id,
       timer: '10s',
-      category: 'js',
+      category: 'JS',
       number_of_questions: '10q',
       participants: [{ user_id: user_id, username: username, score: 0 }],
     };
@@ -242,6 +244,8 @@ Participants:
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData: string | null = await this.redis.get(quizKey);
     const quiz: Quiz = JSON.parse(quizData as string);
+    if (!quiz) return { error: 'No quiz found' };
+    console.log(quiz);
     if (user_id !== quiz.user_id)
       return { error: 'Only the quiz creator can change the timer' };
     quiz.timer = timer;
@@ -259,6 +263,7 @@ Participants:
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData: string | null = await this.redis.get(quizKey);
     const quiz: Quiz = JSON.parse(quizData as string);
+    if (!quiz) return { error: 'No quiz found' };
     if (user_id !== quiz.user_id)
       return {
         error: 'Only the quiz creator can change the number of questions',
@@ -279,6 +284,7 @@ Participants:
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData: string | null = await this.redis.get(quizKey);
     const quiz: Quiz = JSON.parse(quizData as string);
+    if (!quiz) return { error: 'No quiz found' };
     if (user_id !== quiz.user_id)
       return { error: ' Only the quiz creator can change the category' };
     quiz.category = category;
@@ -296,6 +302,7 @@ Participants:
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData = await this.redis.get(quizKey);
     const quiz: Quiz = JSON.parse(quizData as string);
+    if (!quiz) return { error: 'No quiz found' };
     if (quiz.participants.map((p) => p.user_id).includes(participant.user_id)) {
       return { error: 'You have already joined this quiz' };
     }
@@ -309,6 +316,7 @@ Participants:
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData = await this.redis.get(quizKey);
     const quiz: Quiz = JSON.parse(quizData as string);
+    if (!quiz) return { error: 'No quiz found' };
     if (user_id !== quiz.user_id)
       return { error: 'Only the quiz creator can start the quiz' };
     const participants: Participant[] = quiz.participants.map((p) => p);
@@ -402,6 +410,9 @@ ${questions[i].answers
   async updateQuizMessageByRedisData(message_id: number, chat_id: number) {
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const savedQuiz = await this.redis.get(quizKey);
+    const quiz: Quiz = JSON.parse(savedQuiz as string);
+    if (!quiz) return { error: 'No quiz found' };
+
     console.log('savedQuiz:', JSON.parse(savedQuiz as string));
   }
 
@@ -492,11 +503,11 @@ ${questions[i].answers
             this.sendMessage(chat_id, changeNumberOfQuestions.error);
           }
           break;
-        case 'js':
-        case 'ts':
-        case 'react':
-        case 'next.js':
-        case 'node.js':
+        case 'JS':
+        case 'TS':
+        case 'React':
+        case 'Next.js':
+        case 'Node.js':
           const changeCaegory = await this.changeQuizCategory(
             user_id,
             message_id,
