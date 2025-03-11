@@ -12,4 +12,8 @@ import { ConfigService } from '@nestjs/config';
     }),
   ],
 })
-export class AppRedisModule {}
+export class AppRedisModule {
+  constructor(private readonly configService: ConfigService) {
+    console.log('REDIS_URL:', configService.get('REDIS_URL'));
+  }
+}
