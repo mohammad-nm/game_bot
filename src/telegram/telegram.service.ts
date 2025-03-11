@@ -86,15 +86,16 @@ export class TelegramService {
     }
   }
   async sendQuizSetupMessage(chat_id: number, username: string) {
-    const message = `Hi! Choose from options below to set up your quiz:
+    const message = `This quiz has been created by: 🙍${username} 
 
+Choose from options below to set up your quiz:
 
-- Press "I'm in!" to join.
-- Adjust quiz settings like timer, category, or number of questions.
-- Press "Start Quiz" when you're ready.
+🙋Press "I'm in!" to join.
+⚙️Adjust quiz settings like timer, category, or number of questions.
+🚀Press "Start Quiz" when everyone is ready.
 
 Participants: 
-${username}
+🙍${username}
 `;
     const options = {
       reply_markup: {
@@ -124,19 +125,25 @@ ${username}
 
     return await this.sendMessage(chat_id, message, options);
   }
-  async updateQuizSetupMessage(message_id: number, chat_id: number) {
+  async updateQuizSetupMessage(
+    message_id: number,
+    chat_id: number,
+    username: string,
+  ) {
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData = await this.redis.get(quizKey);
     const quiz: Quiz = JSON.parse(quizData as string);
-    const message = `Hi! Choose from options below to set up your quiz:
+    const message = `Hi!
+This quiz has been created by: 🙍${username}
 
+Choose from options below to set up your quiz:
 
-- Press "I'm in!" to join.
-- Adjust quiz settings like timer, category, or number of questions.
-- Press "Start Quiz" when you're ready.
+🙋Press "I'm in!" to join.
+⚙️Adjust quiz settings like timer, category, or number of questions.
+🚀Press "Start Quiz" when everyone is ready.
 
 Participants: 
-${quiz.participants.map((p) => p.username).join(', ')}
+🙍${quiz.participants.map((p) => p.username).join('\n' + '🙋')}
 `;
     const reply_markup = {
       inline_keyboard: [
@@ -219,16 +226,13 @@ ${quiz.participants.map((p) => p.username).join(', ')}
       participants: [{ user_id: user_id, username: username, score: 0 }],
     };
     await this.redis.set(quizKey, JSON.stringify(quizData));
-    const savedQuiz: string | null = await this.redis.get(
-      `Quiz:${message_id}${chat_id}`,
-    );
-    console.log('savedQuiz:', JSON.parse(savedQuiz as string));
   }
   async changeQuizTimer(
     user_id: number,
     message_id: number,
     chat_id: number,
     timer: string,
+    username: string,
   ) {
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData: string | null = await this.redis.get(quizKey);
@@ -237,7 +241,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
       return { error: 'Only the quiz creator can change the timer' };
     quiz.timer = timer;
     await this.redis.set(quizKey, JSON.stringify(quiz));
-    await this.updateQuizSetupMessage(message_id, chat_id);
+    await this.updateQuizSetupMessage(message_id, chat_id, username);
     return { success: 'Timer changed successfully' };
   }
   async changeQuizNumberOfQuestions(
@@ -245,6 +249,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
     message_id: number,
     chat_id: number,
     number_of_questions: string,
+    username: string,
   ) {
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData: string | null = await this.redis.get(quizKey);
@@ -256,7 +261,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
     quiz.number_of_questions = number_of_questions;
     await this.redis.set(quizKey, JSON.stringify(quiz));
 
-    await this.updateQuizSetupMessage(message_id, chat_id);
+    await this.updateQuizSetupMessage(message_id, chat_id, username);
     return { success: 'Number of questions changed successfully' };
   }
   async changeQuizCategory(
@@ -264,6 +269,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
     message_id: number,
     chat_id: number,
     category: string,
+    username: string,
   ) {
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData: string | null = await this.redis.get(quizKey);
@@ -272,7 +278,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
       return { error: ' Only the quiz creator can change the category' };
     quiz.category = category;
     await this.redis.set(quizKey, JSON.stringify(quiz));
-    await this.updateQuizSetupMessage(message_id, chat_id);
+    await this.updateQuizSetupMessage(message_id, chat_id, username);
     return { success: 'Category changed successfully' };
   }
 
@@ -280,6 +286,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
     message_id: number,
     chat_id: number,
     participant: Participant,
+    username: string,
   ) {
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const quizData = await this.redis.get(quizKey);
@@ -290,7 +297,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
     quiz.participants.push(participant);
     console.log('quiz:', quiz);
     await this.redis.set(quizKey, JSON.stringify(quiz));
-    await this.updateQuizSetupMessage(message_id, chat_id);
+    await this.updateQuizSetupMessage(message_id, chat_id, username);
     return { success: 'Participant added successfully' };
   }
   async startQuiz(user_id: number, message_id: number, chat_id: number) {}
@@ -344,11 +351,16 @@ ${quiz.participants.map((p) => p.username).join(', ')}
       );
       switch (callbackData) {
         case 'im_in':
-          await this.addToQuizParticipants(message_id, chat_id, {
-            user_id: user_id,
-            username: username,
-            score: 0,
-          });
+          await this.addToQuizParticipants(
+            message_id,
+            chat_id,
+            {
+              user_id: user_id,
+              username: username,
+              score: 0,
+            },
+            username,
+          );
 
           break;
         case '5s':
@@ -359,6 +371,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
             message_id,
             chat_id,
             callbackData,
+            username,
           );
           if (changeTimer.error) {
             this.sendMessage(chat_id, changeTimer.error);
@@ -375,6 +388,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
               message_id,
               chat_id,
               callbackData,
+              username,
             );
           if (changeNumberOfQuestions.error) {
             this.sendMessage(chat_id, changeNumberOfQuestions.error);
@@ -390,6 +404,7 @@ ${quiz.participants.map((p) => p.username).join(', ')}
             message_id,
             chat_id,
             callbackData,
+            username,
           );
           if (changeCaegory.error) {
             await this.sendMessage(chat_id, changeCaegory.error);
