@@ -20,6 +20,11 @@ interface Participant {
   username: string; //username of the participant
   score: number; //score of the participant
 }
+interface Question {
+  question: string;
+  answers: Array<string>;
+  correctAnswer: string;
+}
 @Injectable()
 export class TelegramService {
   private telegramBot: TelegramBot;
@@ -300,7 +305,100 @@ Participants:
     await this.updateQuizSetupMessage(message_id, chat_id, username);
     return { success: 'Participant added successfully' };
   }
-  async startQuiz(user_id: number, message_id: number, chat_id: number) {}
+  async startQuiz(user_id: number, message_id: number, chat_id: number) {
+    const quizKey = `Quiz:${message_id}${chat_id}`;
+    const quizData = await this.redis.get(quizKey);
+    const quiz: Quiz = JSON.parse(quizData as string);
+    if (user_id !== quiz.user_id)
+      return { error: 'Only the quiz creator can start the quiz' };
+    const participants: Participant[] = quiz.participants.map((p) => p);
+    console.log('quiz:', quiz);
+    console.log('participants:', participants);
+    const questions: Question[] = [
+      {
+        question: '1What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+      {
+        question: '2What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+      {
+        question: '3What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+      {
+        question: '4What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+      {
+        question: '5What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+      {
+        question: '6What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+      {
+        question: '7What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+      {
+        question: '8What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+      {
+        question: '9What is the answer?',
+        answers: ['aaa', 'bbb', 'ccc'],
+        correctAnswer: 'aaa',
+      },
+    ]; //TODO: get questions from redis based on the category
+    for (let i = 0; i < questions.length; i++) {
+      const newMessage = `⏳Timer: ${quiz.timer}
+🔍Category: ${quiz.category}
+🔢Number of Questions: ${quiz.number_of_questions}
+🏁Participants:
+${quiz.participants.map((p) => `🙍${p.username}: ${p.score}`).join('\n')}
+
+⁉️Question${i + 1}/${questions.length}: 
+${questions[i].question}
+
+${questions[i].answers
+  .map(
+    (a, index) => `${index + 1}. ${a}
+      `,
+  )
+  .join('\n')}
+    `;
+      const reply_markup = {
+        inline_keyboard: [
+          ...questions[i].answers.map((a, index) => [
+            {
+              text: `${index + 1}`,
+              callback_data: `${a}`,
+            },
+          ]),
+        ],
+      };
+      console.log('newMessage:', newMessage);
+      console.log('reply_markup:', reply_markup);
+      await this.editMessage(newMessage, message_id, chat_id, reply_markup);
+      await new Promise((resolve) =>
+        setTimeout(
+          resolve,
+          { '5s': 5000, '10s': 10000, '15s': 15000 }[quiz.timer] || 15000,
+        ),
+      );
+    }
+  }
   async updateQuizMessageByRedisData(message_id: number, chat_id: number) {
     const quizKey = `Quiz:${message_id}${chat_id}`;
     const savedQuiz = await this.redis.get(quizKey);
