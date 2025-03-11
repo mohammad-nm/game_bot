@@ -3,7 +3,6 @@ import * as TelegramBot from 'node-telegram-bot-api';
 import { ConfigService } from '@nestjs/config';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
-import { error } from 'console';
 
 interface Quiz {
   user_id: number; //who created the quiz
