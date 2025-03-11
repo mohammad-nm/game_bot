@@ -3,6 +3,7 @@ import * as TelegramBot from 'node-telegram-bot-api';
 import { ConfigService } from '@nestjs/config';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
+import { error } from 'console';
 
 interface Quiz {
   user_id: number; //who created the quiz
@@ -139,8 +140,7 @@ Participants:
     const quizData = await this.redis.get(quizKey);
     const quiz: Quiz = JSON.parse(quizData as string);
     if (!quiz) return { error: 'No quiz found' };
-    const message = `Hi!
-This quiz has been created by: 🙍${username}
+    const message = `This quiz has been created by: 🙍${username}
 
 Choose from options below to set up your quiz:
 
@@ -247,6 +247,8 @@ Participants:
     console.log(quiz);
     if (user_id !== quiz.user_id)
       return { error: 'Only the quiz creator can change the timer' };
+    if (quiz.timer === timer)
+      return { error: 'Timer already set to this value' };
     quiz.timer = timer;
     await this.redis.set(quizKey, JSON.stringify(quiz));
     await this.updateQuizSetupMessage(message_id, chat_id, username);
@@ -267,6 +269,8 @@ Participants:
       return {
         error: 'Only the quiz creator can change the number of questions',
       };
+    if (quiz.number_of_questions === number_of_questions)
+      return { error: 'Number of questions already set to this value' };
     quiz.number_of_questions = number_of_questions;
     await this.redis.set(quizKey, JSON.stringify(quiz));
 
@@ -286,6 +290,8 @@ Participants:
     if (!quiz) return { error: 'No quiz found' };
     if (user_id !== quiz.user_id)
       return { error: ' Only the quiz creator can change the category' };
+    if (quiz.category === category)
+      return { error: 'Category already set to this value' };
     quiz.category = category;
     await this.redis.set(quizKey, JSON.stringify(quiz));
     await this.updateQuizSetupMessage(message_id, chat_id, username);
